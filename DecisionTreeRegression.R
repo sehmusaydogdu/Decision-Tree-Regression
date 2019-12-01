@@ -19,6 +19,10 @@ D <- ncol(as.matrix(X_train))
 N_train <- length(X_train)
 N_test <- length(X_test)
 
+#pre-pruning parameter
+pre_pruning_values <- list(5,10,15,20,25,30,35,40,45,50)
+rmse_result_list<-c()
+rmse_index <- 0
 P <- 25
 
 #Plot data point
@@ -30,13 +34,6 @@ plot(X_train, y_train, pch = 19,
      main = sprintf("P = %g", P),
      col = "blue")
 points(X_test,y_test, pch = 19,col = "red")
-
-#pre-pruning parameter
-
-pre_pruning_values <- list(5,10,15,20,25,30,35,40,45,50)
-rmse_result_list<-c()
-rmse_index <- 0
-
 
 for(p_value in pre_pruning_values){
   P <- p_value
@@ -72,12 +69,14 @@ for(p_value in pre_pruning_values){
         is_terminal[split_node] <- TRUE
       } else {
         is_terminal[split_node] <- FALSE
-        
-        best_score <- 0
-        best_split <- 0
+          
+        score <- 0
+        split <- 0
+          
         unique_values <- sort(unique(X_train[data_indices]))
         split_positions <- (unique_values[-1] + unique_values[-length(unique_values)]) / 2
         split_scores <- rep(0, length(split_positions))
+         
         for (s in 1:length(split_positions)) {
           left_indices <- data_indices[which(X_train[data_indices] < split_positions[s])]
           right_indices <- data_indices[which(X_train[data_indices] >= split_positions[s])]
@@ -85,19 +84,19 @@ for(p_value in pre_pruning_values){
             sum((y_train[right_indices] - mean(y_train[right_indices]))**2 / length(y_train[data_indices]))
           -length(right_indices) / length(data_indices) * sum(sapply(1:K, function(c) {mean(y_train[right_indices] == c) * log2(mean(y_train[right_indices] == c))}), na.rm = TRUE)
         }
-        best_score <- min(split_scores)
-        best_split <- split_positions[which.min(split_scores)]
-        
-        node_splits[split_node] <- best_split
-        
+        score <- min(split_scores)
+        split <- split_positions[which.min(split_scores)]
+          
+        node_splits[split_node] <- split
+          
         # create left node using the selected split
-        left_indices <- data_indices[which(X_train[data_indices] < best_split)]
+        left_indices <- data_indices[which(X_train[data_indices] < split)]
         node_indices[[2 * split_node]] <- left_indices
         is_terminal[2 * split_node] <- FALSE
         need_split[2 * split_node] <- TRUE
-        
+          
         # create right node using the selected split
-        right_indices <- data_indices[which(X_train[data_indices] >= best_split)]
+        right_indices <- data_indices[which(X_train[data_indices] >= split)]
         node_indices[[2 * split_node + 1]] <- right_indices
         is_terminal[2 * split_node + 1] <- FALSE
         need_split[2 * split_node + 1] <- TRUE
@@ -114,7 +113,7 @@ for(p_value in pre_pruning_values){
         y_predicted[i] <- node[index]
         break
       } else {
-        if (X_test[i] < node_splits[index]) {
+        if (X_test[i] <= node_splits[index]) {
           index <- index * 2
         } else {
           index <- index * 2 + 1
