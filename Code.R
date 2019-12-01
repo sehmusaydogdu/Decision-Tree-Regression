@@ -1,24 +1,28 @@
 # read data into memory
-data_set <- read.csv("hw05_data_set.csv")
+data_set <- read.csv("hw05_data_set.csv", header=TRUE, sep=",")
 
-# get X and y values
-X <- data_set$eruptions
-y <- data_set$waiting
+#split train and test data_sets
+train_data_set <- data_set[0:150,]
+test_data_set <- data_set[151:272,]
 
-#split training and test data points
-X_train <- as.matrix(X)[0:150,]
-y_train <- as.matrix(y)[0:150,]
-X_test  <- as.matrix(X)[151:272,]
-y_test  <- as.matrix(y)[151:272,]
+# get eruption and waiting values
+X_train <- train_data_set$eruptions
+y_train <- train_data_set$waiting
+
+X_test <- test_data_set$eruptions
+y_test <- test_data_set$waiting
 
 # get number of classes and number of features
-K <- max(y)
-D <- ncol(as.matrix(X_train))
-P <- 25
+# K <- max(y)
+D <- ncol(X_train)
+
 
 # get numbers of train and test samples
 N_train <- length(X_train)
 N_test <- length(X_test)
+
+#pre-pruning parameter
+P <- 25
 
 # create necessary data structures
 node_indices <- list()
@@ -27,22 +31,12 @@ need_split <- c()
 
 node_features <- c()
 node_splits <- c()
-node <- c()
+node_means <- c()
 
 # put all training instances into the root node
 node_indices <- list(1:N_train)
 is_terminal <- c(FALSE)
 need_split <- c(TRUE)
-
-#Plot data point
-plot(X_train, y_train, pch = 19,
-     xlim = c(min(X_train), max(X_train)),
-     ylim = c(min(y_train), max(y_train)),
-     xlab = sprintf("Eruption time (min)", bin_width), 
-     ylab = "Waiting time to next encruption (min)", 
-     main = sprintf("h = %g", bin_width),
-     col = "blue")
-points(X_test,y_test, pch = 19,col = "red")
 
 # learning algorithm
 while (1) {
@@ -56,9 +50,9 @@ while (1) {
   for (split_node in split_nodes) {
     data_indices <- node_indices[[split_node]]
     need_split[split_node] <- FALSE
-    node[split_node] <- mean(y_train[data_indices])
+    node_means[split_node] <- mean(y_train[data_indices])
     # check whether node is pure
-    if (length(data_indices) <= P) {
+    if (length(unique(y_train[data_indices])) == 1 | length(data_indices) <= P) {
       is_terminal[split_node] <- TRUE
     } else {
       is_terminal[split_node] <- FALSE
@@ -73,11 +67,16 @@ while (1) {
         right_indices <- data_indices[which(X_train[data_indices] >= split_positions[s])]
         split_scores[s] <- sum((y_train[left_indices] - mean(y_train[left_indices]))**2 / length(y_train[data_indices])) +
           sum((y_train[right_indices] - mean(y_train[right_indices]))**2 / length(y_train[data_indices]))
-                           -length(right_indices) / length(data_indices) * sum(sapply(1:K, function(c) {mean(y_train[right_indices] == c) * log2(mean(y_train[right_indices] == c))}), na.rm = TRUE)
+        
+        # split_scores[s] <- -length(left_indices) / length(data_indices) * sum(sapply(1:K, function(c) {mean(y_train[left_indices] == c) * log2(mean(y_train[left_indices] == c))}), na.rm = TRUE) +
+        #                    -length(right_indices) / length(data_indices) * sum(sapply(1:K, function(c) {mean(y_train[right_indices] == c) * log2(mean(y_train[right_indices] == c))}), na.rm = TRUE)
       }
       best_score <- min(split_scores)
       best_split <- split_positions[which.min(split_scores)]
       
+      # decide where to split on which feature
+      #split_d <- which(best_score)
+      # node_features[split_node] <- split_d
       node_splits[split_node] <- best_split
       
       # create left node using the selected split
@@ -95,13 +94,14 @@ while (1) {
   }
 }
 
+
 # traverse tree for test data points
 y_predicted <- rep(0, N_test)
 for (i in 1:N_test) {
   index <- 1
   while (1) {
     if (is_terminal[index] == TRUE) {
-      y_predicted[i] <- node[index]
+      y_predicted[i] <- node_means[index]
       break
     } else {
       if (X_test[i] < node_splits[index]) {
@@ -112,17 +112,8 @@ for (i in 1:N_test) {
     }
   }
 }
-rmse <- sqrt(sum((y_test - y_predicted)**2) / length(y_test))
+rmse <- round(sqrt(sum((y_test - y_predicted)**2) / length(y_test)),4)
 print(sprintf("RMSE is %g when P is %g", rmse ,P))
-
-
-#Plot pre-pruning and RMSE representation
-plot(X_train, y_train, pch = 19,
-     xlim = c(5, 50),
-     ylim = c(min(X_train), max(X_train)),
-     xlab = sprintf("Pre-pruning size (P)"), 
-     ylab = "RMSE", 
-     col = "blue")
 
 
 
