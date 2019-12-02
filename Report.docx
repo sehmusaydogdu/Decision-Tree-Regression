@@ -1,0 +1,34 @@
+Homework 05: Decision Tree Regression
+I wrote Decision Tree Regression using R programming language by following the steps below.
+1.	I read file “hw05_data_set.csv” using the data_set variable.
+2.	I split the data into two as training and test data. 
+3.	Calculator node mean square errors for impurity measure.
+4.	Formula in the below. (Formula: 9.10 books)
+
+ 
+
+5.	Total error of the split in the below. . (Formula: 9.14 books)
+
+ 
+
+6.	Plot drawing in the below.
+7.	Drawing a lines in the below .
+ 
+
+
+
+
+
+
+8.	Calculator RMSE in formula.  (RMSE is 6.4541 when P is 25)
+9.	“pre-prunning-values” set data list (5-10-15-20-25-30-35-40-45-50)
+10.	Plot drawing in the below.
+11.	Drawing a lines in the below .
+
+
+
+
+ 
+
+
+Şeyhmus Aydoğdu
